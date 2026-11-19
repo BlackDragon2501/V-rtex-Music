@@ -1,0 +1,247 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-vortex: var(--vortex);
+  --color-vortex-2: var(--vortex-2);
+  --color-vortex-mid: var(--vortex-mid);
+  --color-vortex-soft: var(--vortex-soft);
+  --color-vortex-glow: var(--vortex-glow);
+  --color-vortex-like: var(--vortex-like);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+  Vórtex Music — Tema oscuro azul eléctrico + violeta.
+  Azul principal:   #2E7CFF  (oklch aprox)
+  Violeta acento:   #7C5CFF
+  Fondo profundo:   #05070D
+  Modo alternativo "Esmeralda": se activa con data-theme="esmeralda" en <html>.
+*/
+:root {
+  --radius: 0.75rem;
+  --vortex: #2e7cff;
+  --vortex-mid: #5b5cf6;
+  --vortex-2: #7c5cff;
+  --vortex-soft: #6ea8ff;
+  --vortex-glow: #22c3ee;
+  --vortex-like: #9d8bff;
+  --background: #05070d;
+  --foreground: #f2f5fd;
+  --card: #0b1220;
+  --card-foreground: #f2f5fd;
+  --popover: #101828;
+  --popover-foreground: #f2f5fd;
+  --primary: #2e7cff;
+  --primary-foreground: #ffffff;
+  --secondary: #131c31;
+  --secondary-foreground: #f2f5fd;
+  --muted: #131c31;
+  --muted-foreground: #8a94ad;
+  --accent: #1a2540;
+  --accent-foreground: #f2f5fd;
+  --destructive: #f04452;
+  --border: rgba(140, 160, 210, 0.14);
+  --input: rgba(140, 160, 210, 0.2);
+  --ring: #2e7cff;
+  --chart-1: #2e7cff;
+  --chart-2: #7c5cff;
+  --chart-3: #22c3ee;
+  --chart-4: #f5a524;
+  --chart-5: #f04452;
+  --sidebar: #080d18;
+  --sidebar-foreground: #f2f5fd;
+  --sidebar-primary: #2e7cff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #131c31;
+  --sidebar-accent-foreground: #f2f5fd;
+  --sidebar-border: rgba(140, 160, 210, 0.12);
+  --sidebar-ring: #2e7cff;
+}
+
+.dark {
+  --background: #05070d;
+  --foreground: #f2f5fd;
+  --card: #0b1220;
+  --card-foreground: #f2f5fd;
+  --popover: #101828;
+  --popover-foreground: #f2f5fd;
+  --primary: #2e7cff;
+  --primary-foreground: #ffffff;
+  --secondary: #131c31;
+  --secondary-foreground: #f2f5fd;
+  --muted: #131c31;
+  --muted-foreground: #8a94ad;
+  --accent: #1a2540;
+  --accent-foreground: #f2f5fd;
+  --destructive: #f04452;
+  --border: rgba(140, 160, 210, 0.14);
+  --input: rgba(140, 160, 210, 0.2);
+  --ring: #2e7cff;
+  --sidebar: #080d18;
+  --sidebar-foreground: #f2f5fd;
+  --sidebar-primary: #2e7cff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #131c31;
+  --sidebar-accent-foreground: #f2f5fd;
+  --sidebar-border: rgba(140, 160, 210, 0.12);
+  --sidebar-ring: #2e7cff;
+}
+
+/* ===== Modo de colores alternativo: Esmeralda ===== */
+html[data-theme="esmeralda"] {
+  --vortex: #10b981;
+  --vortex-mid: #14b8a6;
+  --vortex-2: #34d399;
+  --vortex-soft: #6ee7b7;
+  --vortex-glow: #2dd4bf;
+  --vortex-like: #34d399;
+  --primary: #10b981;
+  --ring: #10b981;
+  --sidebar-primary: #10b981;
+  --sidebar-ring: #10b981;
+  --chart-1: #10b981;
+  --chart-2: #14b8a6;
+  --chart-3: #34d399;
+}
+html[data-theme="esmeralda"] .dark {
+  --primary: #10b981;
+  --ring: #10b981;
+  --sidebar-primary: #10b981;
+  --sidebar-ring: #10b981;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior: none;
+  }
+}
+
+/* ===== Utilidades Vórtex (basadas en el tema activo) ===== */
+.vortex-gradient {
+  background-image: linear-gradient(135deg, var(--vortex) 0%, var(--vortex-mid) 55%, var(--vortex-2) 100%);
+}
+.vortex-text-gradient {
+  background-image: linear-gradient(120deg, var(--vortex-soft) 0%, var(--vortex-like) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.panel-surface {
+  background-color: #0b1220;
+  border: 1px solid rgba(140, 160, 210, 0.12);
+}
+
+/* Scrollbars finas estilo Spotify */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(140, 160, 210, 0.18);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 160, 210, 0.35);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Anillo de vórtex giratorio para Now Playing */
+@keyframes vortex-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.vortex-ring {
+  animation: vortex-spin 14s linear infinite;
+}
+.vortex-ring-reverse {
+  animation: vortex-spin 22s linear infinite reverse;
+}
+
+@keyframes equalize {
+  0% {
+    height: 20%;
+  }
+  50% {
+    height: 90%;
+  }
+  100% {
+    height: 35%;
+  }
+}
+.eq-bar {
+  animation: equalize 0.9s ease-in-out infinite;
+}
+
+/* Slider: thumb azul */
+[data-slot="slider"]:not([data-disabled]) [data-slot="slider-thumb"] {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.group\/slider:hover [data-slot="slider-thumb"],
+[data-slot="slider-thumb"]:focus-visible {
+  opacity: 1;
+}

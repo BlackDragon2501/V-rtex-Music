@@ -7,6 +7,7 @@ import { wikimediaSearch } from "@/lib/music/wikimedia";
 import { jamendoSearch } from "@/lib/music/jamendo";
 import { archiveSearch, archiveReachable } from "@/lib/music/archive";
 import { maybeRotateDaily } from "@/lib/music/scheduler";
+import { JP_SCRIPT } from "@/lib/music/match";
 import type { SearchPayload, Track } from "@/lib/music/types";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +85,17 @@ export async function GET(req: NextRequest) {
         seen.add(k);
         return true;
       });
+      // En consultas CJK, las pistas con guion CJK real (kana/kanji) en título
+      // o artista van PRIMERO: Commons/Openverse casan el kanji también vía
+      // descripciones en inglés ("東方" → "Rock the Orient") y sin este orden
+      // esas pistas occidentales encabezarían el resultado (verificado).
+      // Sort estable: dentro de cada grupo se conserva el orden de fuentes.
+      if (isMultilingual) {
+        const cjkRe = JP_SCRIPT;
+        songs.sort((a, b) =>
+          Number(cjkRe.test(`${b.title}${b.artist}`)) - Number(cjkRe.test(`${a.title}${a.artist}`))
+        );
+      }
       return {
         songs,
         artists: artists.status === "fulfilled" ? artists.value : [],

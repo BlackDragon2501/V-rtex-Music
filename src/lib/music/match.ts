@@ -14,6 +14,14 @@ export const FOREIGN_SCRIPT = /[\u0900-\u097F\u0600-\u06FF\u0800-\u083F]/;
 // solo pistas verdaderamente japonesas entre los resultados de búsqueda.
 export const JP_SCRIPT = /[\u3040-\u30FF\u31F0-\u31FF\u3400-\u4DBF\u4E00-\u9FFF\uFF66-\uFF9D]/;
 
+// Marcadores japoneses en romaji: para pistas SIN guion japonés (títulos
+// romanizados por el uploader) exige una palabra japonesa reconocible.
+// Usado por las radios de Japón para acotar el ruido no japonés que llega
+// etiquetado como jpop/japan en Jamendo (verificado: "Fotinye", ucraniano;
+// "{jazzn' beat}"…): sin guion japonés NI marcador romaji → fuera del pool.
+export const JP_ROMAN =
+  /j-?pop|j-?rock|japan(ese)?|nihon|nippon|tokyo|kyoto|osaka|sakura|vocaloid|utau|touhou|anime|shamisen|shakuhachi|\bkoto\b|gagaku|biwa|taiko|kayokyoku|enka|ryukyu|okinawa|kisarazu/i;
+
 // Detecta títulos-basura que se cuelan en los catálogos libres: vídeos de
 // estados de WhatsApp/TikTok, tonos de llamada y archivos con el nombre
 // URL-encoded (p. ej. "%F0%9F%92%96New_Whatsapp_Status_Video…"). Decodifica

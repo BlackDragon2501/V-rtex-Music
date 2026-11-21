@@ -16,8 +16,11 @@
 //                 verificadas con grabaciones completas reales
 //   · jamTag    → etiqueta nativa de Jamendo (tags=jpop…): la vía directa para
 //                 los géneros japoneses que Jamendo indexa por su propio tag
-//   · auJapan   → búsqueda japonesa en Audius con filtro de guion japonés (CJK):
-//                 solo pistas genuinamente japonesas (ver probe-japan.ts)
+//   · auJapan → búsqueda japonesa en Audius con filtro de guion japonés (CJK):
+//                 solo pistas genuinamente japonesas (ver probe-japan.ts).
+//                 `true` = consultas base (vocaloid/j-pop/j-rock/japan);
+//                 string[] = consultas específicas de la radio (anime: touhou,
+//                 utau, anime cover — doujin verificado en Audius).
 export const GENRES: Record<
   string,
   {
@@ -30,7 +33,7 @@ export const GENRES: Record<
     ia?: string;
     wikiLang?: "ru" | "cn" | "jp";
     jamTag?: string;
-    auJapan?: boolean;
+    auJapan?: boolean | string[];
   }
 > = {
   reggaeton: { label: "Reggaetón", audius: "Reggaeton", cc: "reggaeton beat", ccm: "latin", wiki: "reggaeton" },
@@ -61,15 +64,22 @@ export const GENRES: Record<
   //  · j-rock / anime: mismo esquema.
   //  · anime: música anime/doujin/vocaloid LIBERADA por sus autores (CC) —
   //    nunca openings con copyright: solo lo que publicaron sus creadores.
+  //    Audius: consultas doujin verificadas (sondeo 2026): "anime cover" trae
+  //    covers con títulos en japonés (NEOWOLX, HUNTER×HUNTER), "touhou" trae
+  //    arreglos 東方 con guion japonés y "utau" covers UTAU 【…カバー】.
   //  · japon-tradicional: Commons verificado (min'yo, shamisen, Hotaru no
   //    Hikari), 78rpm japoneses de dominio público en Internet Archive y
   //    tradicional en Jamendo. IA es OPCIONAL (degradación si no responde).
+  //    jamTag "japan" en vez de "shamisen": el tag shamisen de Jamendo es
+  //    RUIDO (sondeo 2026: "Pantera Japanese Trap", artistas cirílicos);
+  //    "japan" aporta contenido de tema japonés real (Sakura, Kisarazu,
+  //    Oriental Music Library) y deja el núcleo tradicional a Commons.
   "j-pop": { label: "J-Pop", auJapan: true, jamTag: "jpop", wikiLang: "jp" },
   "j-rock": { label: "J-Rock", auJapan: true, jamTag: "jrock", wikiLang: "jp" },
-  anime: { label: "Anime & Vocal", auJapan: true, jamTag: "anime", wikiLang: "jp" },
+  anime: { label: "Anime & Vocal", auJapan: ["anime cover", "touhou", "utau"], jamTag: "anime", wikiLang: "jp" },
   "japon-tradicional": {
     label: "Japón tradicional",
-    jamTag: "shamisen",
+    jamTag: "japan",
     jam: "japanese traditional music",
     wikiLang: "jp",
     ia: "language:(japanese)",

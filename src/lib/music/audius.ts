@@ -137,10 +137,18 @@ function japaneseness(t: Track): boolean {
 }
 
 // offset: página aleatoria para la rotación de la radio (0 = base verificada).
-export async function audiusJapan(limit = 16, offset = 0): Promise<Track[]> {
+// queries: consultas de la radio; por defecto las base verificadas (vocaloid,
+// j-pop, j-rock, japan). Anime & Vocal pasa las suyas doujin (touhou, utau,
+// anime cover — sondeo 2026) manteniendo el MISMO filtro de guion japonés.
+export async function audiusJapan(
+  limit = 16,
+  offset = 0,
+  queries: readonly string[] = JP_QUERIES
+): Promise<Track[]> {
+  const qs = queries.length > 0 ? queries : JP_QUERIES;
   const perQuery = Math.max(10, Math.min(limit, 20));
   const halves = await Promise.allSettled(
-    JP_QUERIES.map((q, i) => audiusSearchTracks(q, perQuery, offset + i * perQuery))
+    qs.map((q, i) => audiusSearchTracks(q, perQuery, offset + i * perQuery))
   );
   const merged: Track[] = [];
   const seen = new Set<string>();

@@ -12,8 +12,12 @@
 //   · ia        → consulta en Internet Archive (netlabels CC y discos
 //                 históricos de libre distribución: netlabels, opensource_audio,
 //                 78rpms, georgeblood); fuente OPCIONAL con degradación suave
-//   · wikiLang  → consultas dedicadas por idioma en Commons ("ru" | "cn"),
+//   · wikiLang  → consultas dedicadas por idioma en Commons ("ru" | "cn" | "jp"),
 //                 verificadas con grabaciones completas reales
+//   · jamTag    → etiqueta nativa de Jamendo (tags=jpop…): la vía directa para
+//                 los géneros japoneses que Jamendo indexa por su propio tag
+//   · auJapan   → búsqueda japonesa en Audius con filtro de guion japonés (CJK):
+//                 solo pistas genuinamente japonesas (ver probe-japan.ts)
 export const GENRES: Record<
   string,
   {
@@ -24,7 +28,9 @@ export const GENRES: Record<
     wiki?: string;
     jam?: string;
     ia?: string;
-    wikiLang?: "ru" | "cn";
+    wikiLang?: "ru" | "cn" | "jp";
+    jamTag?: string;
+    auJapan?: boolean;
   }
 > = {
   reggaeton: { label: "Reggaetón", audius: "Reggaeton", cc: "reggaeton beat", ccm: "latin", wiki: "reggaeton" },
@@ -43,7 +49,29 @@ export const GENRES: Record<
   indie: { label: "Indie", audius: "Indie", cc: "indie folk", ccm: "indie", wiki: "indie rock", ia: "indie" },
   trance: { label: "Trance", audius: "Trance", cc: "trance", ccm: "trance", wiki: "trance music", ia: "trance" },
   dubstep: { label: "Dubstep", audius: "Dubstep", cc: "dubstep", ccm: "dubstep", wiki: "dubstep", ia: "dubstep" },
-  // Radios por idioma (fase R1 + C1/R4): audio completo y legal verificado.
+  // Radios por idioma (fase R1 + C1/R4 + JP): audio completo y legal verificado.
   ruso: { label: "Rusia", jam: "russian folk song", cc: "russian folk song", wikiLang: "ru" },
   china: { label: "China tradicional", jam: "chinese traditional music", cc: "chinese traditional", wikiLang: "cn" },
+  // Japón (Fase 2 · JP): todo tipo de música japonesa legal y completa.
+  //  · j-pop: tag nativo jpop de Jamendo (verificado con títulos en japonés),
+  //    Audius filtrado por guion japonés y Commons. SIN fuente Openverse por
+  //    texto: la búsqueda libre de Openverse arrastraba ruido no japonés
+  //    (portugués, italiano, azerí) que solo MENCIONA "japanese pop" en
+  //    metadatos; el tag de Jamendo y el filtro CJK de Audius son la vía precisa.
+  //  · j-rock / anime: mismo esquema.
+  //  · anime: música anime/doujin/vocaloid LIBERADA por sus autores (CC) —
+  //    nunca openings con copyright: solo lo que publicaron sus creadores.
+  //  · japon-tradicional: Commons verificado (min'yo, shamisen, Hotaru no
+  //    Hikari), 78rpm japoneses de dominio público en Internet Archive y
+  //    tradicional en Jamendo. IA es OPCIONAL (degradación si no responde).
+  "j-pop": { label: "J-Pop", auJapan: true, jamTag: "jpop", wikiLang: "jp" },
+  "j-rock": { label: "J-Rock", auJapan: true, jamTag: "jrock", wikiLang: "jp" },
+  anime: { label: "Anime & Vocal", auJapan: true, jamTag: "anime", wikiLang: "jp" },
+  "japon-tradicional": {
+    label: "Japón tradicional",
+    jamTag: "shamisen",
+    jam: "japanese traditional music",
+    wikiLang: "jp",
+    ia: "language:(japanese)",
+  },
 };

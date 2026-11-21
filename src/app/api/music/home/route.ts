@@ -18,8 +18,8 @@ export const dynamic = "force-dynamic";
 // · Sonidos libres → Openverse (Jamendo, Wikimedia · Creative Commons) +
 //   Jamendo directo + lo más descargado de Internet Archive (colecciones libres)
 // · Novedades libres → selección destacada de ccMixter (remixes y original, completas)
-// · Rincón del mundo → Rusia y China tradicionales: Wikimedia Commons (dominio
-//   público verificado) + canciones rusas/chinas CC de Jamendo
+// · Rincón del mundo → Rusia, China y Japón tradicionales: Wikimedia Commons
+//   (dominio público verificado) + canciones CC de Jamendo
 //
 // ROTACIÓN DE PORTADA (canciones distintas cada vez):
 //  · POOL por generación (15 min): cada sección se construye con offset
@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 //  · SESIÓN: en cada visita pickFresh() reparte del pool canciones aún no
 //    vistas por esta sesión (sid); secciones tipo ranking conservan su orden
 //    (ventanas corridas) y las mixtas salen mezcladas.
-const POOL = { trending: 60, underground: 36, fresh: 40, cc: 40, wmRu: 30, wmCn: 18, ia: 18 };
+const POOL = { trending: 60, underground: 36, fresh: 40, cc: 40, wmRu: 30, wmCn: 18, wmJp: 18, ia: 18 };
 const SHOW = { trending: 24, underground: 16, fresh: 20, cc: 24, world: 16 };
 
 export async function GET(req: NextRequest) {
@@ -43,23 +43,25 @@ export async function GET(req: NextRequest) {
     `home:pool:v6:${poolBucket()}`,
     16 * 60_000,
     async () => {
-      const [trending, underground, fresh, ccOv, wmRu, wmCn, jmRu, jmCn, jmHome, iaHome] = await Promise.allSettled([
+      const [trending, underground, fresh, ccOv, wmRu, wmCn, wmJp, jmRu, jmCn, jmJp, jmHome, iaHome] = await Promise.allSettled([
         rotatedLoad(5, (s) => audiusTrending(POOL.trending, s * 30), 30),
         rotatedLoad(4, (s) => audiusUnderground(POOL.underground, s * 24), 16),
         rotatedLoad(3, (s) => ccmixterFeatured(POOL.fresh, s * 20), 12),
         openverseHome(POOL.cc), // páginas aleatorias dentro (ver openverseHome)
         rotatedLoad(3, (s) => wikimediaLanguage("ru", POOL.wmRu, s * 12), 8),
         rotatedLoad(3, (s) => wikimediaLanguage("cn", POOL.wmCn, s * 12), 2),
+        rotatedLoad(3, (s) => wikimediaLanguage("jp", POOL.wmJp, s * 12), 4),
         rotatedLoad(3, (s) => jamendoWorld("ru", 12, s * 12), 4),
         rotatedLoad(3, (s) => jamendoWorld("cn", 12, s * 12), 4),
+        rotatedLoad(3, (s) => jamendoWorld("jp", 12, s * 12), 4),
         rotatedLoad(4, (s) => safeJamendoHome(POOL.cc / 2, s * 24), 8),
         rotatedLoad(3, (s) => archiveHome(POOL.ia, s + 1), 6),
       ]);
       // Diagnóstico: las fuentes rechazadas quedan ciegas en allSettled.
       for (const [label, r] of [
         ["audiusTrending", trending], ["audiusUnder", underground], ["ccmFeatured", fresh],
-        ["openverseHome", ccOv], ["wmRu", wmRu], ["wmCn", wmCn],
-        ["jmRu", jmRu], ["jmCn", jmCn], ["jmHome", jmHome], ["iaHome", iaHome],
+        ["openverseHome", ccOv], ["wmRu", wmRu], ["wmCn", wmCn], ["wmJp", wmJp],
+        ["jmRu", jmRu], ["jmCn", jmCn], ["jmJp", jmJp], ["jmHome", jmHome], ["iaHome", iaHome],
       ] as const) {
         if (r.status === "rejected") {
           console.error(`[home] fuente ${label} rechazada:`, r.reason instanceof Error ? r.reason.message : r.reason);
@@ -72,22 +74,26 @@ export async function GET(req: NextRequest) {
       const ovH = ccOv.status === "fulfilled" ? ccOv.value : [];
       const ruW = wmRu.status === "fulfilled" ? wmRu.value : [];
       const cnW = wmCn.status === "fulfilled" ? wmCn.value : [];
+      const jpW = wmJp.status === "fulfilled" ? wmJp.value : [];
       const ruJ = jmRu.status === "fulfilled" ? jmRu.value : [];
       const cnJ = jmCn.status === "fulfilled" ? jmCn.value : [];
+      const jpJ = jmJp.status === "fulfilled" ? jmJp.value : [];
       const jmH = jmHome.status === "fulfilled" ? jmHome.value : [];
       const iaH = iaHome.status === "fulfilled" ? iaHome.value : [];
 
-      // Sección mundo: Wikimedia (dominio público) primero, Jamendo después.
+      // Sección mundo: INTERCALADO Rusia/China/Japón (Wikimedia primero,
+      // Jamendo después, un turno por bloque): cualquier ventana de la sección
+      // muestra los tres países en vez de quedarse solo con el más poblado.
       const world: Track[] = [];
       const seen = new Set<string>();
-      for (const r of [ruW, cnW, ruJ, cnJ]) {
-        for (const t of r) {
-          if (junkTitle(t.title)) continue;
-          const k = `${t.title.toLowerCase()}|${t.artist.toLowerCase()}`;
-          if (seen.has(k)) continue;
-          seen.add(k);
-          world.push(t);
-        }
+      const queues = [ruW, cnW, jpW, ruJ, cnJ, jpJ].map((r) => [...r]);
+      for (let i = 0; world.length < 90 && queues.some((q) => q.length > 0); i++) {
+        const t = queues[i % queues.length].shift();
+        if (!t || junkTitle(t.title)) continue;
+        const k = `${t.title.toLowerCase()}|${t.artist.toLowerCase()}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        world.push(t);
       }
 
       // "Sonidos libres": Openverse + Jamendo directo + Internet Archive.

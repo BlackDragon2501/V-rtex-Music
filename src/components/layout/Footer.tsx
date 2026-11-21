@@ -134,7 +134,7 @@ const DOCS: Record<LegalDoc, { titulo: string; descripcion: string; secciones: S
       {
         h: "Funciones",
         ps: [
-          "Reproducción continua, cola editable, radios por género con rotación, búsqueda con historial, letras sincronizadas, playlists y favoritos guardados en tu dispositivo, y álbumes completos de Internet Archive con su orden de disco original.",
+          "Reproducción continua, cola editable, radios por género con rotación, radios japonesas (J-Pop, J-Rock, Anime & Vocal, Japón tradicional), búsqueda con historial, letras sincronizadas, playlists y favoritos guardados en tu dispositivo, y álbumes completos de Internet Archive con su orden de disco original.",
         ],
       },
       {

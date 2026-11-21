@@ -1,5 +1,5 @@
 import { cached, fetchJson } from "./cache";
-import { durationClose, FOREIGN_SCRIPT, titleMatch } from "./match";
+import { durationClose, FOREIGN_SCRIPT, JP_SCRIPT, titleMatch } from "./match";
 import type { Track } from "./types";
 
 // ============ Cliente Wikimedia Commons (audio 100% legal y COMPLETO) ============
@@ -137,7 +137,7 @@ export async function wikimediaResolve(
   }
 }
 
-// ===== Consultas dedicadas por idioma (R4 · ruso, C1 · chino tradicional) =====
+// ===== Consultas dedicadas por idioma (R4 · ruso, C1 · chino, JP · Japón) =====
 // Cada consulta fue VERIFICADA contra la API de Commons devolviendo grabaciones
 // completas (60+ s) de dominio público / Creative Commons:
 //  · ru: "Russian folk song" (Chaliapin, Plevitskaya), "Russian romance"
@@ -145,8 +145,14 @@ export async function wikimediaResolve(
 //    y "Tchaikovsky" (Marche Slave, Romeo y Julieta, Sinfonía n.º 4 y 5).
 //  · cn: "guqin" (Yangguan Sandie, Zuiyu Changwan), "erhu music"
 //    (二泉映月, 雨打芭蕉) y "Chinese folk song" (conjunto vocal e instrumental).
+//  · jp (verificada 2026): "Japanese traditional music" (12/12 audios completos:
+//    Hotaru no Hikari, canciones de min'yo, conjuntos tradicionales),
+//    "Japanese folk song" (伊丹の秋洗い唄 y grabaciones vocales),
+//    "Japanese song" (Hakonehachiri, Tsutome song trio) y "shamisen"
+//    (shamisen con voces). Descartadas por ruido: gagaku y minyo (0 resultados
+//    completos) y biwa (arrastra grabaciones de aves y ópera italiana).
 // Rotan por hora para que la radio nunca se repita igual.
-const LANG_QUERIES: Record<"ru" | "cn", string[]> = {
+const LANG_QUERIES: Record<"ru" | "cn" | "jp", string[]> = {
   // ru ampliada (verificada 2026): las tres nuevas aportan Plevitskaya,
   // Chaliapin, el coro del himno ruso y el Coro Grigorovitch (dominio público).
   ru: [
@@ -161,12 +167,14 @@ const LANG_QUERIES: Record<"ru" | "cn", string[]> = {
   // cn: las candidatas extra (guzheng, pipa, dizi…) arrastran grabaciones que
   // no son chinas en Commons; se mantienen SOLO las tres verificadas.
   cn: ["guqin", "erhu music", "Chinese folk song"],
+  // jp: solo consultas verificadas (sondeo scripts/probe-japan.ts, 2026).
+  jp: ["Japanese traditional music", "Japanese folk song", "Japanese song", "shamisen"],
 };
 
 // offset: página avanzada (múltiplo de 12) para la rotación de las radios
-// rusas/chinas y de "Rincón del mundo"; el paso 0 mantiene las consultas
-// verificadas originales y rotatedLoad vuelve a él si una página falla.
-export async function wikimediaLanguage(kind: "ru" | "cn", limit = 10, offset = 0): Promise<Track[]> {
+// rusas/chinas/japonesas y de "Rincón del mundo"; el paso 0 mantiene las
+// consultas verificadas originales y rotatedLoad vuelve a él si una página falla.
+export async function wikimediaLanguage(kind: "ru" | "cn" | "jp", limit = 10, offset = 0): Promise<Track[]> {
   const list = LANG_QUERIES[kind];
   // Se consultan TODAS las verificaciones del idioma: Commons no tiene cuota
   // ajustada y así cada radio maximiza el contenido completo disponible.
@@ -178,11 +186,30 @@ export async function wikimediaLanguage(kind: "ru" | "cn", limit = 10, offset = 
   // Algunas búsquedas (p. ej. "Soviet song") arrastran grabaciones en alfabetos
   // ajenos (devanagari, árabe…): no pueden ser música rusa ni china, se descartan
   // (FOREIGN_SCRIPT ya se aplica dentro de wikimediaSearch).
+  // JP: las consultas de texto libre arrastran folclore coreano ("Baennorae",
+  // "Park Hyang-rim") y bandas occidentales ("O Canada") que solo MENCIONAN
+  // Japón en la descripción de la página. Filtro de relevancia: conservar
+  // título con guion japonés (kana/kanji) o palabra clave japonesa reconocible.
   const seen = new Set<string>();
   return merged.filter((t) => {
+    if (kind === "jp" && !jpRelevant(t.title)) return false;
     const k = `${t.title.toLowerCase()}|${t.artist.toLowerCase()}`;
     if (seen.has(k)) return false;
     seen.add(k);
     return true;
   }).slice(0, limit);
+}
+
+// Relevancia japonesa de un título de Commons: guion japonés real (hiragana,
+// katakana, kanji) o romaji de instrumentos/géneros japoneses verificables.
+// Las consultas verificadas con este filtro (sondeo scripts/probe-japan.ts):
+// "Japanese traditional music" 12/12, "Japanese folk song", "Japanese song",
+// "shamisen". Ejemplos que SÍ pasan: 伊丹の秋洗い唄, Hotaru no Hikari (Auld
+// lang syne in Japan), Hakonehachiri - japanese song, Shamisenwithvocals.
+// Ejemplos que se descartan: O Canada (Navy Band), Baennorae (Korea),
+// Park Hyang-rim (Korea), Shenandoah, Crazy Blues.
+const JP_KEYWORD = /japan(ese)?|nihon|nippon|shamisen|shakuhachi|koto|min[.'’-]?yo|gagaku|biwa|taiko|odori|ondo|matsuri|bon\s|kayokyoku|enka|ryukyu|okinawan/i;
+
+function jpRelevant(title: string): boolean {
+  return JP_SCRIPT.test(title) || JP_KEYWORD.test(title);
 }

@@ -210,14 +210,44 @@ export async function jamendoHome(limit = 20, offset = 0): Promise<Track[]> {
   return fallback.slice(0, limit);
 }
 
-// Mundo: canciones rusas y chinas reales en Jamendo (fallback verificado
-// vía Openverse). Complementa a Wikimedia Commons para las radios dedicadas.
-// offset: página aleatoria para la rotación de "Rincón del mundo".
-export async function jamendoWorld(kind: "ru" | "cn", limit = 8, offset = 0): Promise<Track[]> {
-  const q = kind === "ru" ? "russian folk song" : "chinese traditional music";
+// Mundo: canciones rusas, chinas y japonesas reales en Jamendo (fallback
+// verificado vía Openverse). Complementa a Wikimedia Commons para las radios
+// dedicadas. offset: página aleatoria para la rotación de "Rincón del mundo".
+export async function jamendoWorld(
+  kind: "ru" | "cn" | "jp",
+  limit = 8,
+  offset = 0
+): Promise<Track[]> {
+  const q =
+    kind === "ru"
+      ? "russian folk song"
+      : kind === "cn"
+        ? "chinese traditional music"
+        : "japanese traditional music";
   return cached(`jm:world:${kind}:${limit}:${offset}`, 60 * 60_000, () =>
     jamendoSearch(q, limit, offset)
   );
+}
+
+// Por ETIQUETA nativa de Jamendo (tags): la vía directa para géneros japoneses
+// (jpop tiene su propio tag verificado en Jamendo; jrock, anime, shamisen…).
+// Con client_id la consulta es por tag y orden de popularidad semanal; sin
+// client_id jamendoFetch degrada a Openverse con una búsqueda de texto.
+// offset: página aleatoria para la rotación de radios.
+export async function jamendoByTag(tag: string, limit = 16, offset = 0): Promise<Track[]> {
+  const t = tag.trim();
+  if (!t) return [];
+  return cached(`jm:tag:${t.toLowerCase()}:${limit}:${offset}`, 60 * 60_000, async () => {
+    try {
+      return await jamendoFetch(
+        { tags: t, order: "popularity_week", offset: String(offset) },
+        `japanese ${t}`,
+        limit
+      );
+    } catch {
+      return [];
+    }
+  });
 }
 
 // Resolución de versión completa en Jamendo: busca "artista título" y devuelve

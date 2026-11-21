@@ -1,5 +1,5 @@
 import { cached, fetchJson } from "./cache";
-import { artistMatch, durationClose, titleMatch } from "./match";
+import { artistMatch, durationClose, JP_SCRIPT, titleMatch } from "./match";
 import type { Artist, Track } from "./types";
 
 // ============ Cliente Audius API (música 100% libre y completa, sin API key) ============
@@ -88,9 +88,9 @@ export async function audiusUnderground(limit = 16, offset = 0): Promise<Track[]
   return (data.data ?? []).filter(valid).map((t) => auTrack(t));
 }
 
-export async function audiusSearchTracks(query: string, limit = 20): Promise<Track[]> {
+export async function audiusSearchTracks(query: string, limit = 20, offset = 0): Promise<Track[]> {
   const data = await audiusGet<{ data: AudiusTrack[] }>(
-    `/v1/tracks/search?query=${encodeURIComponent(query)}&limit=${limit}`
+    `/v1/tracks/search?query=${encodeURIComponent(query)}&limit=${limit}${offset > 0 ? `&offset=${offset}` : ""}`
   );
   return (data.data ?? []).filter(valid).map((t) => auTrack(t));
 }
@@ -116,6 +116,45 @@ export async function audiusByGenre(genre: string, limit = 20, offset = 0): Prom
     `/v1/tracks/trending?genre=${encodeURIComponent(genre)}&limit=${limit}&offset=${offset}&time=week`
   );
   return (data.data ?? []).filter(valid).map((t) => auTrack(t));
+}
+
+// ===== Japón (Fase 2 · JP) ===================================================
+// Audius no expone "J-Pop" como género de tendencias (verificado: 0 resultados),
+// pero sí hospeda artistas japoneses y covers de vocaloid encontrables por
+// búsqueda. Estrategia en dos capas para NO llenar la radio de "type beats"
+// occidentales que solo LLEVAN "j-pop" en el título:
+//   1. Buscar por varias consultas japonesas (vocaloid, j-pop, j-rock, japan).
+//   2. Filtrar: conservar solo pistas con guion japonés (hiragana/katakana/kanji)
+//      en título o artista, o cuyo género declarado sea japonés.
+// Los sondeos (scripts/probe-japan.ts) confirmaron que el filtro CJK rescata
+// contenido genuino (covers 【VOCALOIDカバー】, artistas con nombre japonés)
+// y descarta el ruido ("J Cole Type Beat", covers de Icona Pop…).
+const JP_QUERIES = ["vocaloid", "j-pop", "j-rock", "japan"] as const;
+const JP_GENRE_OK = /^(j-?pop|j-?rock|j-?dance|j-?urban|j-?alternative|japanese|anime|vocaloid|kayokyoku|city ?pop)$/i;
+
+function japaneseness(t: Track): boolean {
+  return JP_SCRIPT.test(`${t.title}${t.artist}`) || JP_GENRE_OK.test(t.genre ?? "");
+}
+
+// offset: página aleatoria para la rotación de la radio (0 = base verificada).
+export async function audiusJapan(limit = 16, offset = 0): Promise<Track[]> {
+  const perQuery = Math.max(10, Math.min(limit, 20));
+  const halves = await Promise.allSettled(
+    JP_QUERIES.map((q, i) => audiusSearchTracks(q, perQuery, offset + i * perQuery))
+  );
+  const merged: Track[] = [];
+  const seen = new Set<string>();
+  for (const h of halves) {
+    if (h.status !== "fulfilled") continue;
+    for (const t of h.value) {
+      if (!japaneseness(t)) continue;
+      const k = `${t.title.toLowerCase()}|${t.artist.toLowerCase()}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      merged.push(t);
+    }
+  }
+  return merged.slice(0, limit);
 }
 
 interface AudiusUser {

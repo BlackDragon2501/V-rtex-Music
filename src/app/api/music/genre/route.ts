@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cached } from "@/lib/music/cache";
-import { audiusByGenre } from "@/lib/music/audius";
+import { audiusByGenre, audiusJapan } from "@/lib/music/audius";
 import { openverseByQuery } from "@/lib/music/openverse";
 import { ccmixterByTag } from "@/lib/music/ccmixter";
 import { wikimediaLanguage, wikimediaSearch } from "@/lib/music/wikimedia";
-import { jamendoByQuery } from "@/lib/music/jamendo";
+import { jamendoByQuery, jamendoByTag } from "@/lib/music/jamendo";
 import { archiveByQuery, archiveReachable } from "@/lib/music/archive";
 import { GENRES } from "@/lib/music/genres";
-import { FOREIGN_SCRIPT, junkTitle } from "@/lib/music/match";
+import { FOREIGN_SCRIPT, JP_SCRIPT, junkTitle } from "@/lib/music/match";
 import { pickFresh, poolBucket, rotatedLoad } from "@/lib/music/rotation";
 import { maybeRotateDaily } from "@/lib/music/scheduler";
 import type { GenreDetail, Track } from "@/lib/music/types";
@@ -51,11 +51,13 @@ export async function GET(req: NextRequest) {
 
   // Capturas const para poder usarlas dentro de las closures de rotación.
   const auGenre = genre.audius;
+  const auJp = genre.auJapan === true;
   const ccQuery = genre.cc;
   const ccmTag = genre.ccm;
   const wikiLang = genre.wikiLang;
   const wikiQuery = genre.wiki;
   const jamQuery = genre.jam;
+  const jamTag = genre.jamTag;
   const iaQuery = genre.ia;
 
   // Si alguna fuente configurada falló o volvió vacía (p. ej. timeout en el
@@ -67,7 +69,7 @@ export async function GET(req: NextRequest) {
     `genre:pool:v6:${slug}:${poolBucket()}`,
     16 * 60_000,
     async () => {
-      const [audiusTracks, openverseTracks, ccmTracks, wikiTracks, jamTracks, iaTracks] = await Promise.allSettled([
+      const [audiusTracks, openverseTracks, ccmTracks, wikiTracks, jamTracks, iaTracks, jamTagTracks, auJpTracks] = await Promise.allSettled([
         auGenre ? rotatedLoad(4, (s) => audiusByGenre(auGenre, POOL.au, s * 24), 20) : Promise.resolve([]),
         ccQuery ? rotatedLoad(3, (s) => openverseByQuery(ccQuery, POOL.ov, s + 1), 6) : Promise.resolve([]),
         ccmTag ? rotatedLoad(3, (s) => ccmixterByTag(ccmTag, POOL.ccm, s * 12), 10) : Promise.resolve([]),
@@ -78,11 +80,15 @@ export async function GET(req: NextRequest) {
             : Promise.resolve([]),
         jamQuery ? rotatedLoad(4, (s) => jamendoByQuery(jamQuery, POOL.jam, s * 24), 8) : Promise.resolve([]),
         iaQuery ? rotatedLoad(3, (s) => archiveByQuery(iaQuery, POOL.ia, s + 1), 8) : Promise.resolve([]),
+        // Japón (Fase 2): tag nativo de Jamendo + Audius filtrado por guion japonés.
+        jamTag ? rotatedLoad(4, (s) => jamendoByTag(jamTag, POOL.jam, s * 24), 8) : Promise.resolve([]),
+        auJp ? rotatedLoad(4, (s) => audiusJapan(POOL.au, s * 10), 10) : Promise.resolve([]),
       ]);
       // Diagnóstico: las fuentes rechazadas quedan ciegas en allSettled.
       for (const [label, r] of [
         ["audius", audiusTracks], ["openverse", openverseTracks], ["ccmixter", ccmTracks],
         ["wikimedia", wikiTracks], ["jamendo", jamTracks], ["archive", iaTracks],
+        ["jamendoTag", jamTagTracks], ["audiusJp", auJpTracks],
       ] as const) {
         if (r.status === "rejected") {
           console.error(`[genre:${slug}] fuente ${label} rechazada:`, r.reason instanceof Error ? r.reason.message : r.reason);
@@ -92,16 +98,35 @@ export async function GET(req: NextRequest) {
       const ov = openverseTracks.status === "fulfilled" ? openverseTracks.value : [];
       const ccm = ccmTracks.status === "fulfilled" ? ccmTracks.value : [];
       const wm = wikiTracks.status === "fulfilled" ? wikiTracks.value : [];
-      const jm = jamTracks.status === "fulfilled" ? jamTracks.value : [];
+      const jm = [
+        ...(jamTracks.status === "fulfilled" ? jamTracks.value : []),
+        ...(jamTagTracks.status === "fulfilled" ? jamTagTracks.value : []),
+      ];
       const ia = iaTracks.status === "fulfilled" ? iaTracks.value : [];
+      const auJ = auJpTracks.status === "fulfilled" ? auJpTracks.value : [];
+
+      // Japón: dentro de Jamendo el tag lo pone el propio uploader y hay
+      // artistas no japoneses auto-etiquetados (verificado en el sondeo).
+      // Los títulos con guion japonés (kana/kanji) forman el núcleo del pool
+      // y el material solo-etiquetado queda LIMITADO a 4 por generación: la
+      // radio se SIENTE japonesa incluso tras el mezclado de pickFresh.
+      if (wikiLang === "jp") {
+        const isJp = (t: Track) => JP_SCRIPT.test(`${t.title}${t.artist}`);
+        const cjkJm = jm.filter(isJp);
+        const rest = jm.filter((t) => !isJp(t)).slice(0, 4);
+        jm.length = 0;
+        jm.push(...cjkJm, ...rest);
+      }
 
       // Configurada pero vacía (rechazada también llega como []) → recalcular.
+      // Audius de Japón también es OPCIONAL: su búsqueda CJK puede volver sin
+      // resultados genuinos en una generación; no debe invalidar el pool.
       sourceMissing =
         (!!auGenre && au.length === 0) ||
         (!!ccQuery && ov.length === 0) ||
         (!!ccmTag && ccm.length === 0) ||
         ((!!wikiLang || !!wikiQuery) && wm.length === 0) ||
-        (!!jamQuery && jm.length === 0) ||
+        ((!!jamQuery || !!jamTag) && jm.length === 0) ||
         // Internet Archive es OPCIONAL: si el entorno no puede alcanzarla
         // (anti-abuso de IA contra IPs de datacenter) la radio se cachea igual
         // que sin ella; cuando IA responde, pasa a exigirse como las demás.
@@ -112,8 +137,8 @@ export async function GET(req: NextRequest) {
       // Se descartan además los títulos en alfabetos ajenos al género (ruido de
       // metadatos de Openverse/Jamendo; cirílico y CJK no están afectados).
       const ordered = wikiLang
-        ? [...wm, ...jm, ...ov, ...ia, ...ccm, ...au]
-        : [...au, ...jm, ...ov, ...ia, ...ccm, ...wm];
+        ? [...wm, ...jm, ...ov, ...ia, ...ccm, ...au, ...auJ]
+        : [...au, ...auJ, ...jm, ...ov, ...ia, ...ccm, ...wm];
       const seen = new Set<string>();
       const tracks: Track[] = ordered.filter((t) => {
         if (FOREIGN_SCRIPT.test(t.title) || junkTitle(t.title)) return false;

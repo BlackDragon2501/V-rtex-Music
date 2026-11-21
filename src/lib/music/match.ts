@@ -8,6 +8,12 @@
 // latín NO están en estos rangos, así que las radios rusas/chinas quedan intactas.
 export const FOREIGN_SCRIPT = /[\u0900-\u097F\u0600-\u06FF\u0800-\u083F]/;
 
+// Guiones japoneses (hiragana, katakana, katakana de media anchura) y kanji
+// (compartido con el chino): detecta contenido genuinamente japonés en títulos
+// y nombres de artista. Usado por la radio de Audius de Japón para conservar
+// solo pistas verdaderamente japonesas entre los resultados de búsqueda.
+export const JP_SCRIPT = /[\u3040-\u30FF\u31F0-\u31FF\u3400-\u4DBF\u4E00-\u9FFF\uFF66-\uFF9D]/;
+
 // Detecta títulos-basura que se cuelan en los catálogos libres: vídeos de
 // estados de WhatsApp/TikTok, tonos de llamada y archivos con el nombre
 // URL-encoded (p. ej. "%F0%9F%92%96New_Whatsapp_Status_Video…"). Decodifica

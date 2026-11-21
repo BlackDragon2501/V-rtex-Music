@@ -31,7 +31,8 @@ const TZ = "America/Managua";
 
 // Radios que se precalientan tras la rotación (slugs de genres.ts) además de
 // la portada: cubren los géneros más visitados sin saturar las APIs externas.
-const PREWARM_GENRES = ["rock", "metal", "electronic", "hip-hop"];
+// j-pop representa a la familia japonesa (las otras tres comparten fuentes).
+const PREWARM_GENRES = ["rock", "metal", "electronic", "hip-hop", "j-pop"];
 
 // Clave del día actual en America/Managua ("2026-11-19").
 function dayKey(): string {

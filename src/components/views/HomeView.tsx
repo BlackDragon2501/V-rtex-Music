@@ -26,6 +26,17 @@ function greeting(): string {
   return "Buenas noches";
 }
 
+// Slugs de las radios japonesas (Fase 2): se muestran en su propia sección
+// "Japón sin límites" y quedan fuera de la rejilla general de géneros.
+const JP_SLUGS = ["j-pop", "j-rock", "anime", "japon-tradicional"];
+// Paleta propia de la sección (paleta de la app + acento carmesí japonés).
+const JP_GRADIENTS = [
+  "linear-gradient(135deg, #1e3a8a 0%, #b91c1c 100%)",
+  "linear-gradient(135deg, #0f172a 0%, #9f1239 100%)",
+  "linear-gradient(135deg, #1d4ed8 0%, #7f1d1d 100%)",
+  "linear-gradient(135deg, #172554 0%, #881337 100%)",
+];
+
 function TrackCards({ tracks, contextTitle }: { tracks: Track[]; contextTitle: string }) {
   const currentId = usePlayer((s) => (s.index >= 0 && s.index < s.queue.length ? s.queue[s.index]?.id : null));
   const playQueue = usePlayer((s) => s.playQueue);
@@ -161,7 +172,7 @@ export function HomeView() {
       {/* Radios por género */}
       <Section title="Radios por género" subtitle="Elige tu estilo y dale al play" carousel={false}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {Object.entries(GENRES).map(([slug, g], i) => (
+          {Object.entries(GENRES).filter(([slug]) => !JP_SLUGS.includes(slug)).map(([slug, g], i) => (
             <button
               key={slug}
               onClick={() => push({ type: "genre", slug })}
@@ -179,10 +190,38 @@ export function HomeView() {
         </div>
       </Section>
 
+      {/* Japón sin límites: radios japonesas (Fase 2) */}
+      <Section
+        title="Japón sin límites"
+        subtitle="J-Pop · J-Rock · Anime & Vocal · Tradicional — completo y legal"
+        carousel={false}
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {JP_SLUGS.map((slug, i) => {
+            const g = GENRES[slug];
+            return (
+              <button
+                key={slug}
+                onClick={() => push({ type: "genre", slug })}
+                className="group relative flex h-24 items-end overflow-hidden rounded-xl p-4 text-left transition-transform hover:scale-[1.02]"
+                style={{ backgroundImage: JP_GRADIENTS[i % JP_GRADIENTS.length] }}
+                aria-label={`Radio de ${g.label}`}
+              >
+                <span className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <span className="relative text-base font-extrabold text-white">{g.label}</span>
+                <span className="vortex-gradient absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full text-white opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100">
+                  <Play className="h-4 w-4 fill-current" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+
       {data.world.length > 0 && (
         <Section
           title="Rincón del mundo"
-          subtitle="Rusia y China tradicionales · dominio público y CC, completas"
+          subtitle="Rusia, China y Japón tradicionales · dominio público y CC, completas"
         >
           <TrackCards tracks={data.world} contextTitle="Rincón del mundo" />
         </Section>
